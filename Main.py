@@ -49,29 +49,11 @@ for entity in feed.entity:
 
 
 
-
-
-  expected_time_to_next_station = 0
-  current_time = time.time()
-  delay = 0
-  departure_time = 0
-
-  next_Station = False
-
   for stop in entity.trip_update.stop_time_update:
-    if(current_time < stop.arrival.time + stop.arrival.delay and next_Station == False):
-      remaining_stops.append(stop.stop_id)
-      expected_time_to_next_station = stop.arrival.time
-      delay = stop.arrival.delay
-      next_Station = True
-    elif (current_time < stop.arrival.time + stop.arrival.delay and next_Station == True):
-      remaining_stops.append(stop.stop_id)
+    remaining_stops.append(stop.stop_id)
 
-
-  if (len(remaining_stops) == 0 or len(remaining_stops) == len(stop_list)):
+  if(len(remaining_stops) == 0 or len(remaining_stops) == len(stop_list)):
     continue
-
-
 
   #print(remaining_stops)
   index_prev_stop = 0
@@ -86,9 +68,12 @@ for entity in feed.entity:
         break
     index_prev_stop += 1
 
-  print(remaining_stops)
-  print(stop_list[index_prev_stop])
-
+  #print(remaining_stops)
+  #print(stop_list[index_prev_stop])
+  expected_time_to_next_station = entity.trip_update.stop_time_update[0].arrival.time
+  current_time = time.time()
+  delay = entity.trip_update.stop_time_update[0].arrival.delay
+  departure_time = 0
 
   trip_id = entity.trip_update.trip.trip_id
   stop_times = open("/Users/rohitsattuluri/PycharmProjects/wallpaper/gtfs_subway/stop_times.txt", "r")
