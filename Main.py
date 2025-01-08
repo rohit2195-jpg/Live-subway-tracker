@@ -25,6 +25,7 @@ stop_names = {}
 stop_list = []
 stopID_to_location = {}
 subwayID_to_location = {}
+tripID_to_shapeID = {}
 stop_info = open("/Users/rohitsattuluri/PycharmProjects/wallpaper/gtfs_subway/stops.txt", 'r')
 lines = stop_info.readlines()
 for line in lines:
@@ -34,6 +35,11 @@ for line in lines:
   if(l[0][0] == "L" and "N" not in l[0] and "S" not in l[0]):
     stop_list.append(l[0])
 
+trip_info = open("/Users/rohitsattuluri/PycharmProjects/wallpaper/gtfs_subway/trips.txt", "r")
+tripinfo_lines = trip_info.readlines()
+for line in tripinfo_lines:
+  l = line.split(",")
+  tripID_to_shapeID[l[1]] = l[5]
 
 
 
@@ -44,6 +50,7 @@ feed.ParseFromString(response.content)
 #print(stopID_to_location)
 
 while True:
+  train_list = []
 
 
   for entity in feed.entity:
@@ -60,6 +67,7 @@ while True:
     if(len(remaining_stops) == 0 or len(remaining_stops) == len(stop_list)):
       continue
 
+
     #print(remaining_stops)
     index_prev_stop = 0
     for stop in stop_list:
@@ -74,7 +82,7 @@ while True:
       index_prev_stop += 1
 
 
-    expected_time_to_next_station = entity.trip_update.stop_time_update[0].arrival.time
+    expected_time_to_next_station = remaining_stop_times[0]
     current_time = time.time()
     delay = entity.trip_update.stop_time_update[0].arrival.delay
     departure_time = 0
@@ -105,7 +113,6 @@ while True:
 
     departure_time = datetime.strptime(f"{date_str} {departure_time}", "%Y-%m-%d %H:%M:%S")
     departure_time = int(departure_time.timestamp())
-    expected_time_to_next_station += delay
 
     print("deaprture timie: " + str(departure_time))
     print("arrival time: " + str(expected_time_to_next_station))
@@ -124,18 +131,30 @@ while True:
     print(progress_ratio)
     print("-"*30)
 
-    train_list = []
 
-    train1 = Train(trip_id, departure_time, expected_time_to_next_station, remaining_stops, remaining_stop_times, delay, stop_list[index_prev_stop], progress_ratio)
+
+
+    shape_id = ""
+    for key in tripID_to_shapeID:
+      if(trip_id in key):
+        shape_id = tripID_to_shapeID[key].strip()
+        break
+
+
+
+
+    train1 = Train(trip_id, departure_time, expected_time_to_next_station, remaining_stops, remaining_stop_times, delay, stop_list[index_prev_stop], progress_ratio, shape_id)
     train_list.append(train1)
 
 
-    #print(entity.trip_update.stop_time_update)
 
+  print(len(train_list))
   updateNeeded = False
   while(not updateNeeded):
     for train in train_list:
-      if(train.update_progress()):
+      time.sleep(1)
+      if(not train.update_progress()):
         updateNeeded = True
+        print("API called again, train fnished all stops")
         break
 
