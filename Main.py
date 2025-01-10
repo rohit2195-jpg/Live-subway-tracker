@@ -8,6 +8,7 @@ from datetime import date
 from Train import Train
 
 
+
 stop_names = {}
 stop_list = []
 stopID_to_location = {}
@@ -100,5 +101,7 @@ while True:
       if(train_list[index].validTrain == False):
         train_list.pop(index)
         index -= 1
+      print(train_list[index].getShapeID(tripID_to_shapeID))
 
       index += 1
+

@@ -1,6 +1,8 @@
 import time
 from datetime import datetime
 from datetime import date
+from geopy.distance import geodesic
+
 
 
 class Train:
@@ -120,23 +122,89 @@ class Train:
 
         return self.progress_ratio
     def getShapeID(self, tripID_to_shapeID):
-        shape_id = ""
+        shape_id = "example"
         for key in tripID_to_shapeID:
             if (self.trip_id in key):
                 shape_id = tripID_to_shapeID[key].strip()
                 break
+        return shape_id
 
-    def estimatedPosition(self, tripID_to_shapeID):
+    def estimatedPosition(self, tripID_to_shapeID, stopID_to_location):
         shape_id = self.getShapeID(tripID_to_shapeID)
         shapes = open("/Users/rohitsattuluri/PycharmProjects/wallpaper/gtfs_subway/shapes.txt", "r")
         shape_lines = shapes.readlines()
 
         route_path = []
+        location_prev = stopID_to_location[self.stop_list[self.findIndexPrevStop()]]
+        location_front = stopID_to_location[self.remaining_stops[0]]
+
 
         for line in shape_lines:
             l = line.split(",")
             if (l[0] == shape_id):
                 route_path.append(line)
 
-        index = int(self.progress_ratio * len(route_path))
+        start_line = self.getNearestPoint(location_prev.split(",")[0], location_prev.split(",")[1], route_path)
+        end_line = self.getNearestPoint(location_front.split(",")[0], location_front.split(",")[1], route_path)
+
+        path_to_stop = []
+        inbetween = False
+        for line in route_path:
+            l = line.split(",")
+            if(line == start_line):
+                inbetween = True
+            elif(line == end_line):
+                inbetween = False
+                path_to_stop.append(l[2]+","+l[3])
+            if(inbetween):
+                path_to_stop.append(l[2]+","+l[3])
+
+        cumulative_distance = [0]
+        total_distance = 0
+
+        for i in range(1, len(path_to_stop)):
+            point1 = (path_to_stop[i-1].split(",")[0], path_to_stop[i-1].split(",")[1])
+            point2 = (path_to_stop[i].split(",")[0], path_to_stop[i].split(",")[1])
+
+            distance = geodesic(point1, point2).meters
+            total_distance += distance
+            cumulative_distance.append(total_distance)
+
+
+        target_distance = self.progress_ratio * total_distance
+
+        for i in range(1, len(cumulative_distance)):
+            if cumulative_distance[i - 1] <= target_distance <= cumulative_distance[i]:
+                # Calculate the ratio between the two points based on distance
+                segment_ratio = (target_distance - cumulative_distance[i - 1]) / (cumulative_distance[i] - cumulative_distance[i - 1])
+
+                lat1, lon1 = path_to_stop[i - 1].split(",")[0], path_to_stop[i - 1].split(",")[1]
+                lat2, lon2 = path_to_stop[i].split(",")[0], path_to_stop[i].split(",")[1]
+
+                # Interpolate lat and lon
+                lat = lat1 + segment_ratio * (lat2 - lat1)
+                lon = lon1 + segment_ratio * (lon2 - lon1)
+
+                return (lat, lon)
+        return (path_to_stop[-1].split(",")[0], path_to_stop[-1].split(",")[1])  #
+
+
+
+
+    def getNearestPoint(self, lat, long, route_path):
+        min_distance = float('inf')
+        nearest_point_line = None
+        for point in route_path:
+            line = point.split(",")
+            point_coords = (line[2], line[3])
+            stop_coords = (lat, long)
+            distance = geodesic(stop_coords, point_coords).meters  # Calculate distance in meters
+            if distance < min_distance:
+                min_distance = distance
+                nearest_point_line = point
+        return nearest_point_line
+
+
+
+
 
