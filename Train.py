@@ -6,7 +6,7 @@ from geopy.distance import geodesic
 
 
 class Train:
-    def __init__(self, trip_id, arrival,remaining_stops, remaining_stop_times, delay, stop_list):
+    def __init__(self, trip_id, arrival,remaining_stops, remaining_stop_times, delay, stop_list, vehicleID):
         self.trip_id = trip_id
 
         self.arrival = arrival
@@ -16,6 +16,7 @@ class Train:
         self.stop_list = stop_list
         self.validTrain = True
         self.departure_time = self.findDepartureTime()
+        self.vehicleID = vehicleID
 
     def update_progress(self):
         current_time = time.time()
@@ -37,12 +38,14 @@ class Train:
         else:
             # Calculate progress ratio
 
+            '''
+
             print(self.trip_id, adjusted_departure, adjusted_arrival, sep="\t")
             print(self.remaining_stops)
             print(self.remaining_stop_times)
             print("current tiime" +  str(current_time))
             print("progress" + str(self.progress_ratio))
-            print("-"*30)
+            '''
 
             return True
     def update_station(self):
@@ -59,12 +62,13 @@ class Train:
             total_time = self.arrival - self.departure_time
             elapsed_time = current_time - self.departure_time
             self.progress_ratio = elapsed_time / total_time
+            '''
             print(self.trip_id, self.departure_time, self.arrival, sep="\t")
             print(self.remaining_stops)
             print(self.remaining_stop_times)
             print("current tiime" + str(current_time))
             print("updated_ progress" + str(self.progress_ratio))
-            print("-" * 30)
+            '''
 
             return True
         return False
@@ -178,8 +182,8 @@ class Train:
                 # Calculate the ratio between the two points based on distance
                 segment_ratio = (target_distance - cumulative_distance[i - 1]) / (cumulative_distance[i] - cumulative_distance[i - 1])
 
-                lat1, lon1 = path_to_stop[i - 1].split(",")[0], path_to_stop[i - 1].split(",")[1]
-                lat2, lon2 = path_to_stop[i].split(",")[0], path_to_stop[i].split(",")[1]
+                lat1, lon1 = float(path_to_stop[i - 1].split(",")[0]), float(path_to_stop[i - 1].split(",")[1].strip())
+                lat2, lon2 = float(path_to_stop[i].split(",")[0]), float(path_to_stop[i].split(",")[1].strip())
 
                 # Interpolate lat and lon
                 lat = lat1 + segment_ratio * (lat2 - lat1)

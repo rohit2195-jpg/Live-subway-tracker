@@ -8,7 +8,6 @@ from datetime import date
 from Train import Train
 
 
-
 stop_names = {}
 stop_list = []
 stopID_to_location = {}
@@ -38,7 +37,6 @@ feed.ParseFromString(response.content)
 #print(stopID_to_location)
 
 for entity in feed.entity:
-  print(entity.trip_update.trip.trip_id)
 
 while True:
   train_list = []
@@ -66,6 +64,7 @@ while True:
     expected_time_to_next_station = remaining_stop_times[0]
 
     delay = entity.trip_update.stop_time_update[0].arrival.delay
+    vehicleID = entity.vehicle.congestion_level
     #capacity =
 
 
@@ -83,7 +82,7 @@ while True:
 
 
 
-    train1 = Train(trip_id, expected_time_to_next_station, remaining_stops, remaining_stop_times, delay, stop_list)
+    train1 = Train(trip_id, expected_time_to_next_station, remaining_stops, remaining_stop_times, delay, stop_list, vehicleID)
     train_list.append(train1)
 
 
@@ -101,7 +100,9 @@ while True:
       if(train_list[index].validTrain == False):
         train_list.pop(index)
         index -= 1
-      print(train_list[index].getShapeID(tripID_to_shapeID))
+      print(train_list[index].estimatedPosition(tripID_to_shapeID, stopID_to_location))
+      print(train_list[index].vehicleID)
+      print("-"*30)
 
       index += 1
 
