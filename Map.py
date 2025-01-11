@@ -31,7 +31,7 @@ geojson_path = 'Subway Lines.geojson'
 with open(geojson_path, 'r') as f:
     data = json.load(f)
 
-g_line_features = [feature for feature in data['features'] if feature['properties']['name'] == 'L']
+g_line_features = [feature for feature in data['features'] if 'R' in feature['properties']['name']]
 
 g_line_features = sorted(g_line_features, key=lambda x: int(x['properties']['id']))
 
@@ -42,6 +42,7 @@ for feature in g_line_features:
     coordinates = feature['geometry']['coordinates']
     new_coordinates = [[lat, lon] for lon, lat in coordinates]
     coordinate_list.extend(new_coordinates)
+
     folium.PolyLine(new_coordinates, color="green", weight=3).add_to(m)
 
 output_path = 'nyc_subway_map.html'
