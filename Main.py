@@ -6,39 +6,47 @@ import time
 from datetime import datetime
 from datetime import date
 from Train import Train
+from flask import Flask, jsonify
+import pickle
 
-
-stop_names = {}
-stop_list = []
-stopID_to_location = {}
-subwayID_to_location = {}
-tripID_to_shapeID = {}
-stop_info = open("/Users/rohitsattuluri/PycharmProjects/wallpaper/gtfs_subway/stops.txt", 'r')
-lines = stop_info.readlines()
-for line in lines:
-  l = line.split(",")
-  stop_names[l[0]] = l[1]
-  stopID_to_location[l[0]] = l[2] + "," + l[3]
-  if(l[0][0] == "L" and "N" not in l[0] and "S" not in l[0]):
-    stop_list.append(l[0])
-
-trip_info = open("/Users/rohitsattuluri/PycharmProjects/wallpaper/gtfs_subway/trips.txt", "r")
-tripinfo_lines = trip_info.readlines()
-for line in tripinfo_lines:
-  l = line.split(",")
-  tripID_to_shapeID[l[1]] = l[5]
+app = Flask(__name__)
 
 
 
+@app.route('/setupTrainList', methods=['GET'])
+def getTrainList():
+  stop_names = {}
+  stop_list = []
+  stopID_to_location = {}
+  subwayID_to_location = {}
+  stop_info = open("/Users/rohitsattuluri/PycharmProjects/wallpaper/gtfs_subway/stops.txt", 'r')
+  lines = stop_info.readlines()
+  for line in lines:
+    l = line.split(",")
+    stop_names[l[0]] = l[1]
+    stopID_to_location[l[0]] = l[2] + "," + l[3]
+    if(l[0][0] == "L" and "N" not in l[0] and "S" not in l[0]):
+      stop_list.append(l[0])
 
-feed = gtfs_realtime_pb2.FeedMessage()
-response = requests.get('https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/nyct%2Fgtfs-l')
-feed.ParseFromString(response.content)
-#print(stopID_to_location)
+  tripID_to_shapeID = {}
+  trip_info = open("/Users/rohitsattuluri/PycharmProjects/wallpaper/gtfs_subway/trips.txt", "r")
+  tripinfo_lines = trip_info.readlines()
+  for line in tripinfo_lines:
+    l = line.split(",")
+    tripID_to_shapeID[l[1]] = l[5]
 
-for entity in feed.entity:
 
-while True:
+
+
+
+
+  feed = gtfs_realtime_pb2.FeedMessage()
+  response = requests.get('https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/nyct%2Fgtfs-l')
+  feed.ParseFromString(response.content)
+  #print(stopID_to_location)
+
+
+
   train_list = []
 
 
@@ -82,27 +90,58 @@ while True:
 
 
 
-    train1 = Train(trip_id, expected_time_to_next_station, remaining_stops, remaining_stop_times, delay, stop_list, vehicleID)
+    train1 = Train(trip_id, expected_time_to_next_station, remaining_stops, remaining_stop_times, delay, stop_list, vehicleID, stopID_to_location, tripID_to_shapeID)
     train_list.append(train1)
 
 
 
   print(len(train_list))
+
+  file = open("Train Database/L_line_trains", "wb")
+  pickle.dump(train_list, file)
+
+
+@app.route('/trainLocation', methods=['GET'])
+def getTrainLocation():
   updateNeeded = False
-  while(not updateNeeded):
-    index = 0
-    while(index < len(train_list)):
-      time.sleep(1)
-      if(not train_list[index].update_progress()):
-        updateNeeded = True
-        print("API called again, train fnished all stops")
-        break
-      if(train_list[index].validTrain == False):
-        train_list.pop(index)
-        index -= 1
-      print(train_list[index].estimatedPosition(tripID_to_shapeID, stopID_to_location))
-      print(train_list[index].vehicleID)
-      print("-"*30)
+  index = 0
+  train_location = []
 
-      index += 1
+  database = open("Train Database/L_line_trains", "rb")
+  train_list = pickle.load(database)
 
+  while(index < len(train_list)):
+    time.sleep(1)
+    if(not train_list[index].update_progress()):
+      updateNeeded = True
+      print("API called again, train fnished all stops")
+      getTrainList()
+      database = open("Train Database/L_line_trains", "rb")
+      train_list = pickle.load(database)
+      index = 0
+      train_list[index].update_progress()
+
+    if(train_list[index].validTrain == False):
+      train_list.pop(index)
+      index -= 1
+    location = train_list[index].estimatedPosition()
+    train_location.append(location)
+
+    print(location)
+    print(train_list[index].trip_id)
+    print(train_list[index].remaining_stop_times)
+    print(time.time())
+    print("-"*30)
+
+
+    index += 1
+  file = open("Train Database/L_line_trains", "wb")
+  pickle.dump(train_list, file)
+  return train_location
+
+if __name__ == '__main__':
+    app.run(debug=True)
+
+print(getTrainList())
+while True:
+  print(getTrainLocation())

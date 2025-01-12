@@ -6,7 +6,7 @@ from geopy.distance import geodesic
 
 
 class Train:
-    def __init__(self, trip_id, arrival,remaining_stops, remaining_stop_times, delay, stop_list, vehicleID):
+    def __init__(self, trip_id, arrival,remaining_stops, remaining_stop_times, delay, stop_list, vehicleID, stopID_to_location, tripID_to_shapeID):
         self.trip_id = trip_id
 
         self.arrival = arrival
@@ -17,6 +17,9 @@ class Train:
         self.validTrain = True
         self.departure_time = self.findDepartureTime()
         self.vehicleID = vehicleID
+        self.stopID_to_location = stopID_to_location
+        self.tripID_to_shapeID = tripID_to_shapeID
+        self.progress_ratio = 0
 
     def update_progress(self):
         current_time = time.time()
@@ -38,14 +41,15 @@ class Train:
         else:
             # Calculate progress ratio
 
-            '''
 
+            '''
             print(self.trip_id, adjusted_departure, adjusted_arrival, sep="\t")
             print(self.remaining_stops)
             print(self.remaining_stop_times)
             print("current tiime" +  str(current_time))
             print("progress" + str(self.progress_ratio))
             '''
+
 
             return True
     def update_station(self):
@@ -133,14 +137,14 @@ class Train:
                 break
         return shape_id
 
-    def estimatedPosition(self, tripID_to_shapeID, stopID_to_location):
-        shape_id = self.getShapeID(tripID_to_shapeID)
+    def estimatedPosition(self):
+        shape_id = self.getShapeID(self.tripID_to_shapeID)
         shapes = open("/Users/rohitsattuluri/PycharmProjects/wallpaper/gtfs_subway/shapes.txt", "r")
         shape_lines = shapes.readlines()
 
         route_path = []
-        location_prev = stopID_to_location[self.stop_list[self.findIndexPrevStop()]]
-        location_front = stopID_to_location[self.remaining_stops[0]]
+        location_prev = self.stopID_to_location[self.stop_list[self.findIndexPrevStop()]]
+        location_front = self.stopID_to_location[self.remaining_stops[0]]
 
 
         for line in shape_lines:
@@ -190,7 +194,7 @@ class Train:
                 lon = lon1 + segment_ratio * (lon2 - lon1)
 
                 return (lat, lon)
-        return (path_to_stop[-1].split(",")[0], path_to_stop[-1].split(",")[1])  #
+        return (float(path_to_stop[-1].split(",")[0].strip()), float(path_to_stop[-1].split(",")[1].strip()))  #
 
 
 

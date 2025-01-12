@@ -1,5 +1,10 @@
 import folium
 import json
+from Main import *
+from flask import Flask, jsonify, request
+
+app = Flask(__name__)
+
 
 
 lines_to_colors = {
@@ -66,6 +71,80 @@ for i in range(1, len(stop_data_content)):
         )
 
         folium.Marker(location=[l[2], l[3]], tooltip=l[1], icon=custom_icon).add_to(m)
+
+link = "https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/nyct%2Fgtfs-l"
+
+@app.route("/")
+def index():
+    map_html = m._repr_html_()
+    html_content = f'''
+        <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Subway Map with Real-Time Updates</title>
+        <style>
+            #map {{
+                width: 100%;
+                height: 600px;
+            }}
+        </style>
+    </head>
+    <body>
+        <h1>Subway Map with Train Updates</h1>
+        <div id="map">{map_html}</div>
+
+        <!-- JavaScript for fetching and updating train positions -->
+        <script>
+            // Function to fetch initial train positions
+            async function setupTrainList() {{
+                const response = await fetch('/setupTrainList', {{
+                    method: 'POST',
+                }});
+                const trainCoordinates = await response.json();
+                console.log("Initial train positions:", trainCoordinates);
+                updateTrainMarkers(trainCoordinates);
+            }}
+
+            // Function to fetch live train positions
+            async function fetchTrainLocations() {{
+                const response = await fetch('/trainLocation');
+                const trainCoordinates = await response.json();
+                console.log("Live train positions:", trainCoordinates);
+                updateTrainMarkers(trainCoordinates);
+            }}
+
+            function updateTrainMarkers(coordinates) {{
+                window.trainMarkers = window.trainMarkers || [];
+                window.trainMarkers.forEach(marker => marker.remove());
+                window.trainMarkers = [];
+
+                coordinates.forEach(function(coord) {{
+                    var marker = L.circleMarker([coord[0], coord[1]], {{
+                        radius: 6,
+                        fillColor: 'red',
+                        color: 'red',
+                        weight: 1,
+                        opacity: 1,
+                        fillOpacity: 0.6
+                    }}).addTo(window.map);
+                    window.trainMarkers.push(marker);
+                }});
+            }}
+
+            window.onload = function() {{
+                setupTrainList();
+                setInterval(fetchTrainLocations, 5000);  // Fetch updates every 5 seconds
+            }};
+        </script>
+    </body>
+    </html>
+    '''
+
+    return html_content
+
+
+if __name__ == '__main__':
+    app.run(debug=True, port=5001)
 
 
 output_path = 'nyc_subway_map.html'
