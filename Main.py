@@ -15,6 +15,7 @@ app = Flask(__name__)
 
 @app.route('/setupTrainList', methods=['GET'])
 def getTrainList():
+  print("setup endpoint called")
   stop_names = {}
   stop_list = []
   stopID_to_location = {}
@@ -100,9 +101,12 @@ def getTrainList():
   file = open("Train Database/L_line_trains", "wb")
   pickle.dump(train_list, file)
 
+  return '', 204
+
 
 @app.route('/trainLocation', methods=['GET'])
 def getTrainLocation():
+  print("location endpoint called")
   updateNeeded = False
   index = 0
   train_location = []
@@ -126,22 +130,25 @@ def getTrainLocation():
       index -= 1
     location = train_list[index].estimatedPosition()
     train_location.append(location)
+    '''
 
     print(location)
     print(train_list[index].trip_id)
     print(train_list[index].remaining_stop_times)
+    print(train_list[index].departure_time)
     print(time.time())
     print("-"*30)
+    '''
 
 
     index += 1
   file = open("Train Database/L_line_trains", "wb")
   pickle.dump(train_list, file)
-  return train_location
+
+  print(train_location)
+  return jsonify(train_location)
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, port = 5001)
 
-print(getTrainList())
-while True:
-  print(getTrainLocation())
+

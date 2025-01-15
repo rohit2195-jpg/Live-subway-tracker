@@ -96,27 +96,41 @@ def index():
         <!-- JavaScript for fetching and updating train positions -->
         <script>
             // Function to fetch initial train positions
+            
             async function setupTrainList() {{
-                const response = await fetch('/setupTrainList', {{
+            try {{
+                console.log("Attempting to call setupTrainList...");
+                const response = await fetch('http://127.0.0.1:5001/setupTrainList', {{
                     method: 'POST',
                 }});
-                const trainCoordinates = await response.json();
-                console.log("Initial train positions:", trainCoordinates);
-                updateTrainMarkers(trainCoordinates);
+                if (!response.ok) {{
+                    console.error("Failed to call setupTrainList:", response.statusText);
+                }} else {{
+                    console.log("setupTrainList completed successfully");
+                }}
+            }} catch (error) {{
+                console.error("Error during setupTrainList:", error);
             }}
+        }}
 
-            // Function to fetch live train positions
-            async function fetchTrainLocations() {{
-                const response = await fetch('/trainLocation');
+        async function fetchTrainLocations() {{
+            console.log("Fetching train locations...");
+            try {{
+                const response = await fetch('http://127.0.0.1:5001/trainLocation');
                 const trainCoordinates = await response.json();
-                console.log("Live train positions:", trainCoordinates);
+                console.log("Live train positions received:", trainCoordinates);
                 updateTrainMarkers(trainCoordinates);
+            }} catch (error) {{
+                console.error("Error fetching train locations:", error);
             }}
+        }}
+
 
             function updateTrainMarkers(coordinates) {{
                 window.trainMarkers = window.trainMarkers || [];
                 window.trainMarkers.forEach(marker => marker.remove());
                 window.trainMarkers = [];
+                window.map = map;
 
                 coordinates.forEach(function(coord) {{
                     var marker = L.circleMarker([coord[0], coord[1]], {{
@@ -131,10 +145,13 @@ def index():
                 }});
             }}
 
-            window.onload = function() {{
-                setupTrainList();
-                setInterval(fetchTrainLocations, 5000);  // Fetch updates every 5 seconds
-            }};
+            document.addEventListener('DOMContentLoaded', async () => {{
+                // Initialize setup first
+                await setupTrainList();
+
+                // Start fetching train locations every 5 seconds
+                setInterval(fetchTrainLocations, 5000);
+            }});
         </script>
     </body>
     </html>
@@ -144,7 +161,7 @@ def index():
 
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5001)
+    app.run(debug=True, port=5000)
 
 
 output_path = 'nyc_subway_map.html'

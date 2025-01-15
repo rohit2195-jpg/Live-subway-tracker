@@ -1,6 +1,8 @@
 import time
 from datetime import datetime
 from datetime import date
+from warnings import catch_warnings
+
 from geopy.distance import geodesic
 
 
@@ -26,9 +28,13 @@ class Train:
         adjusted_departure = self.departure_time
         adjusted_arrival = self.arrival
 
-        total_time = adjusted_arrival - adjusted_departure
-        elapsed_time = current_time - adjusted_departure
-        self.progress_ratio = elapsed_time / total_time
+        try:
+            total_time = adjusted_arrival - adjusted_departure
+            elapsed_time = current_time - adjusted_departure
+            self.progress_ratio = elapsed_time / total_time
+        except ZeroDivisionError:
+            print("an error occured, departure and arrival are both 0, fix this later")
+            print(adjusted_departure, adjusted_arrival, total_time, current_time)
 
 
         if current_time > adjusted_arrival:
