@@ -1,15 +1,176 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>nyc subway map</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NYC Subway Map</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
+  <style>
+    #map {
+      height: 100vh; /* Full-screen height */
+    }
+    .custom-icon {
+      width: 12px;
+      height: 12px;
+    }
+  </style>
 </head>
 <body>
+  <div id="map"></div>
+  <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+  <script>
+    // Initialize the map
+    const map = L.map('map').setView([40.7, -73.95], 12);
+    let trainMarkers = [];
 
-    <iframe src="nyc_subway_map.html" width="100%" height="600px" id="map-frame"></iframe>
-    <script src="trainUpdates.js"></script>
+
+    // Add a basemap
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; <a href="https://carto.com/">Carto</a>',
+      subdomains: 'abcd',
+      maxZoom: 19
+    }).addTo(map);
+
+    // Define subway line colors
+    const linesToColors = {
+      "A": "blue", "C": "blue", "E": "blue", "S": "grey",
+      "B": "orange", "D": "orange", "F": "orange", "M": "orange",
+      "G": "lightgreen", "L": "lightgrey", "J": "orange",
+      "N": "yellow", "Q": "yellow", "R": "yellow", "W": "yellow",
+      "1": "red", "2": "red", "3": "red", "4": "green",
+      "5": "green", "6": "green", "7": "purple",
+    };
+
+    // Load and display GeoJSON data for subway lines
+    fetch('Subway Lines.geojson')
+      .then(response => response.json())
+      .then(data => {
+        Object.keys(linesToColors).forEach(line => {
+          const lineFeatures = data.features.filter(feature =>
+            feature.properties.name.includes(line)
+          );
+
+          // Sort features by ID
+          lineFeatures.sort((a, b) => parseInt(a.properties.id) - parseInt(b.properties.id));
+
+          // Collect coordinates and plot the line
+          lineFeatures.forEach(feature => {
+            const coordinates = feature.geometry.coordinates.map(([lon, lat]) => [lat, lon]);
+            L.polyline(coordinates, {
+              color: linesToColors[line],
+              weight: 5,
+              opacity: 1
+            }).bindTooltip(`${line} line`).addTo(map);
+          });
+        });
+      })
+      .catch(err => console.error('Error loading GeoJSON:', err));
+
+    // Add custom station markers from stops.txt
+    try {
+        fetch('gtfs_subway/stops.txt')
+            .then(response => response.text())
+            .then(data => {
+                const rows = data.split('\n').slice(1); // Skip header row
+                rows.forEach(row => {
+                const cols = row.split(',');
+                const stationId = cols[0];
+                const stationName = cols[1];
+                const lat = parseFloat(cols[2]);
+                const lon = parseFloat(cols[3]);
+
+                // Check if lat/lon are valid numbers
+                if (isNaN(lat) || isNaN(lon)) {
+                    console.warn(`Invalid coordinates for station ${stationId}: lat=${lat}, lon=${lon}`);
+                    return; // Skip invalid entries
+                }
+
+                if (!["N", "S"].includes(stationId[stationId.length - 1])) {
+                    const icon = L.icon({
+                        iconUrl: 'noun-metro-station-79184.png',
+                        iconSize: [12, 12],
+                        className: 'custom-icon'
+                    });
+
+                    L.marker([lat, lon], { icon })
+                        .bindTooltip(stationName)
+                        .addTo(map);
+                }
+            });
+
+            })
+            .catch(err => console.error('Error loading stops.txt:', err));
+    } catch (error) {
+        console.error("invalid data:", error);
+    }
+
+    // Example of live updates (e.g., train locations)
+    function updateTrainLocations(locations) {
+      // Clear previous markers (optional, if needed)
+      if (window.trainMarkers) {
+        window.trainMarkers.forEach(marker => map.removeLayer(marker));
+      }
+      window.trainMarkers = [];
+
+      // Add new train markers
+      locations.forEach(([lat, lon]) => {
+        const marker = L.circleMarker([lat, lon], {
+          radius: 5,
+          color: 'red',
+          fillColor: 'red',
+          fillOpacity: 0.8
+        }).addTo(map);
+        window.trainMarkers.push(marker);
+      });
+    }
+
+    function getTrainLocations() {
+    return fetch('http://127.0.0.1:5001/trainLocation')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Failed to fetch train locations: ${response.statusText}`);
+            }
+            return response.json();
+        });
+}
+    function setupTrainList() {
+        return fetch('http://127.0.0.1:5001/setupTrainList')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Setup failed: ${response.statusText}`);
+                }
+                return response.text();
+            })
+            .then(text => {
+                if (text !== "setup_done") {
+                    throw new Error("Unexpected setup response");
+                }
+            });
+    }
+
+    async function initializeSystem() {
+    try {
+        // First, ensure the map is initialized
+        console.log("Initializing map...");
+
+        // Then set up the train list
+        console.log("Setting up train list...");
+        await setupTrainList();
+        console.log("Setup completed.");
+
+        // Start periodic updates
+        setInterval(async () => {
+            console.log("Fetching train locations...");
+            const trainLocations = await getTrainLocations();
+            console.log("Updating train markers...");
+            updateTrainLocations(trainLocations);
+        }, 10000);
+    } catch (error) {
+        console.error("Error initializing system:", error);
+    }
+}
+document.addEventListener('DOMContentLoaded', initializeSystem);
+
+  </script>
 </body>
 </html>

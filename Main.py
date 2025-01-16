@@ -78,6 +78,7 @@ def index():
 
   output_path = 'nyc_subway_map.html'
   m.save(output_path)
+
   return render_template('index.html', map_path=output_path)
 
 @app.route('/setupTrainList', methods=['GET'])
@@ -184,7 +185,7 @@ def getTrainLocation():
   train_list = pickle.load(database)
 
   while(index < len(train_list)):
-    time.sleep(1)
+    #time.sleep(1)
     if(not train_list[index].update_progress()):
       updateNeeded = True
       print("API called again, train fnished all stops")
