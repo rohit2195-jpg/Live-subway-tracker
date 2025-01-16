@@ -199,9 +199,12 @@ class Train:
                 lat = lat1 + segment_ratio * (lat2 - lat1)
                 lon = lon1 + segment_ratio * (lon2 - lon1)
 
-                return (lat, lon)
-        return (float(path_to_stop[-1].split(",")[0].strip()), float(path_to_stop[-1].split(",")[1].strip()))  #
+                return [lat, lon]
 
+        try:
+            return [float(path_to_stop[-1].split(",")[0].strip()), float(path_to_stop[-1].split(",")[1].strip())]  #
+        except:
+            return [0,0]
 
 
 

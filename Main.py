@@ -2,19 +2,16 @@
 
 from google.transit import gtfs_realtime_pb2
 import requests
-import time
-from datetime import datetime
-from datetime import date
+
 from Train import Train
 from flask import Flask, render_template, jsonify
 import pickle
 import folium
 import json
-from flask_cors import CORS, cross_origin
+from flask_cors import CORS
 
 app = Flask(__name__)
 CORS(app)
-
 @app.route('/')
 def index():
   lines_to_colors = {
@@ -82,7 +79,6 @@ def index():
   return render_template('index.html', map_path=output_path)
 
 @app.route('/setupTrainList', methods=['GET'])
-@cross_origin()
 def getTrainList():
   print("setup endpoint called")
   stop_names = {}
@@ -174,7 +170,6 @@ def getTrainList():
 
 
 @app.route('/trainLocation', methods=['GET'])
-@cross_origin()
 def getTrainLocation():
   print("location endpoint called")
   updateNeeded = False
@@ -216,7 +211,9 @@ def getTrainLocation():
   pickle.dump(train_list, file)
 
   print(train_location)
+
   return jsonify(train_location)
+
 
 if __name__ == '__main__':
     app.run(debug=True, port = 5001)

@@ -113,15 +113,18 @@
       window.trainMarkers = [];
 
       // Add new train markers
-      locations.forEach(([lat, lon]) => {
+      for (const [lat, lon] of locations) {
+        if (lat === 0 && lon === 0) {
+          continue;
+        }
         const marker = L.circleMarker([lat, lon], {
           radius: 5,
-          color: 'red',
-          fillColor: 'red',
-          fillOpacity: 0.8
+          color: 'black',
+          fillColor: 'black',
+          fillOpacity: 0.2
         }).addTo(map);
         window.trainMarkers.push(marker);
-      });
+      }
     }
 
     function getTrainLocations() {
@@ -164,7 +167,7 @@
             const trainLocations = await getTrainLocations();
             console.log("Updating train markers...");
             updateTrainLocations(trainLocations);
-        }, 10000);
+        }, 5000);
     } catch (error) {
         console.error("Error initializing system:", error);
     }
