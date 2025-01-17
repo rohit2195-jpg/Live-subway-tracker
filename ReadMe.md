@@ -23,7 +23,7 @@ This project recieves stop data and expected arrival times from the Metropolitan
 - Main.py - This is the backend of the application. It handles recieving data from the API and communicating with the frontend
 - Train.py - This file is a class of a Train. Essentially it stores all the API data for each train as a Train Object. It updates the data when needed and performs calculations on the data to find estimated coordinates of the object's position
 - index.html - This is the frontend, responsible for recieving data from the backend, creating the map, and updating the map.
-Other - Many of the other files are just static datasets about the subway found on NYC's website
+- Other - Many of the other files are just static datasets about the subway found on NYC's website
 
 ## Useful links:
 - [NYC subway map] (https://new.mta.info/map/5341)
