@@ -9,6 +9,7 @@ import pickle
 import folium
 import json
 from flask_cors import CORS
+import time
 
 app = Flask(__name__)
 CORS(app)
@@ -91,7 +92,7 @@ def getTrainList():
     l = line.split(",")
     stop_names[l[0]] = l[1]
     stopID_to_location[l[0]] = l[2] + "," + l[3]
-    if(l[0][0] == "L" and "N" not in l[0] and "S" not in l[0]):
+    if(l[0][0] in ["A", "F", "G","H", "E", "D"] and "N" not in l[0] and "S" not in l[0]):
       stop_list.append(l[0])
 
   tripID_to_shapeID = {}
@@ -107,7 +108,7 @@ def getTrainList():
 
 
   feed = gtfs_realtime_pb2.FeedMessage()
-  response = requests.get('https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/nyct%2Fgtfs-l')
+  response = requests.get('https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/nyct%2Fgtfs-ace')
   feed.ParseFromString(response.content)
   #print(stopID_to_location)
 
@@ -156,6 +157,7 @@ def getTrainList():
 
 
 
+
     train1 = Train(trip_id, expected_time_to_next_station, remaining_stops, remaining_stop_times, delay, stop_list, vehicleID, stopID_to_location, tripID_to_shapeID)
     train_list.append(train1)
 
@@ -180,7 +182,7 @@ def getTrainLocation():
   train_list = pickle.load(database)
 
   while(index < len(train_list)):
-    #time.sleep(1)
+
     if(not train_list[index].update_progress()):
       updateNeeded = True
       print("API called again, train fnished all stops")
@@ -193,17 +195,23 @@ def getTrainLocation():
     if(train_list[index].validTrain == False):
       train_list.pop(index)
       index -= 1
+      continue
     location = train_list[index].estimatedPosition()
+
+    if (train_list[index].validTrain == False):
+      train_list.pop(index)
+      index -= 1
+      continue
     train_location.append(location)
-    '''
+
 
     print(location)
     print(train_list[index].trip_id)
     print(train_list[index].remaining_stop_times)
-    print(train_list[index].departure_time)
-    print(time.time())
+    print("departure timie: ", train_list[index].departure_time)
+    print("current time: ", time.time())
     print("-"*30)
-    '''
+
 
 
     index += 1
@@ -212,10 +220,14 @@ def getTrainLocation():
 
   print(train_location)
 
-  return jsonify(train_location)
+  #return jsonify(train_location)
 
 
 if __name__ == '__main__':
     app.run(debug=True, port = 5001)
+
+getTrainList()
+while True:
+  getTrainLocation()
 
 

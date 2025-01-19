@@ -1,5 +1,5 @@
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from datetime import date
 from warnings import catch_warnings
 
@@ -17,7 +17,7 @@ class Train:
         self.delay = delay
         self.stop_list = stop_list
         self.validTrain = True
-        self.departure_time = self.findDepartureTime()
+        self.departure_time = 0
         self.vehicleID = vehicleID
         self.stopID_to_location = stopID_to_location
         self.tripID_to_shapeID = tripID_to_shapeID
@@ -25,16 +25,18 @@ class Train:
 
     def update_progress(self):
         current_time = time.time()
+        self.departure_time = self.findDepartureTime()
+        if(self.departure_time == 0):
+            self.validTrain = False
+            return True
         adjusted_departure = self.departure_time
         adjusted_arrival = self.arrival
 
-        try:
-            total_time = adjusted_arrival - adjusted_departure
-            elapsed_time = current_time - adjusted_departure
-            self.progress_ratio = elapsed_time / total_time
-        except ZeroDivisionError:
-            print("an error occured, departure and arrival are both 0, fix this later")
-            print(adjusted_departure, adjusted_arrival, total_time, current_time)
+        total_time = adjusted_arrival - adjusted_departure
+
+        elapsed_time = current_time - adjusted_departure
+        self.progress_ratio = elapsed_time / total_time
+
 
 
         if current_time > adjusted_arrival:
@@ -64,14 +66,19 @@ class Train:
 
         if(len(self.remaining_stop_times) > 1):
 
+
             self.past_station = self.remaining_stops[0][0:3]
             self.remaining_stops.pop(0)
             self.departure_time = self.remaining_stop_times.pop(0)
             self.arrival = self.remaining_stop_times[0]
 
-            total_time = self.arrival - self.departure_time
-            elapsed_time = current_time - self.departure_time
-            self.progress_ratio = elapsed_time / total_time
+            try:
+                total_time = self.arrival - self.departure_time
+                elapsed_time = current_time - self.departure_time
+                self.progress_ratio = elapsed_time / total_time
+            except:
+                print("figure out why thisi is happning")
+
             '''
             print(self.trip_id, self.departure_time, self.arrival, sep="\t")
             print(self.remaining_stops)
@@ -114,22 +121,39 @@ class Train:
 
     def findDepartureTime(self):
         estimateddeparture = 0
-        index_prev_stop = self.findIndexPrevStop()
+        backup_departure = 0
+        backup_tripID = self.trip_id[0:self.trip_id.index(".")]
         stop_times = open("/Users/rohitsattuluri/PycharmProjects/wallpaper/gtfs_subway/stop_times.txt", "r")
         contents = stop_times.readlines()
-        for content in contents:
-            line = content.split(",")
-            if (self.trip_id in line[0] and line[1] == (self.stop_list[index_prev_stop] + self.remaining_stops[0][-1])):
-                estimateddeparture = line[3]
+        for i in range(1, len(contents)):
+            line = contents[i].split(",")
+            prev_line = contents[i-1].split(",")
+            ##get departure time in different way, not with stop_list but with stopsequence on stop_times.txt
+
+
+            if (self.trip_id in line[0] and line[1] == (self.remaining_stops[0])):
+                estimateddeparture = prev_line[3]
+                self.past_station = prev_line[1]
                 break
+            if(backup_tripID in line[0] and line[1] == (self.remaining_stops[0])):
+                backup_departure = prev_line[3]
+                self.past_station = prev_line[1]
+
+
         if(estimateddeparture == 0):
-            validTrain = False
-            return 0
+            estimateddeparture = backup_departure
+        if(estimateddeparture == 0 and backup_departure == 0):
+            self.validTrain = False
 
-        date_str = date.today()
+        try:
+            date_str = date.today()
 
-        estimateddeparture = datetime.strptime(f"{date_str} {estimateddeparture}", "%Y-%m-%d %H:%M:%S")
-        estimateddeparture = int(estimateddeparture.timestamp())
+            estimateddeparture = datetime.strptime(f"{date_str} {estimateddeparture}", "%Y-%m-%d %H:%M:%S")
+            estimateddeparture = int(estimateddeparture.timestamp())
+        except ValueError:
+            estimateddeparture = 0
+
+
         return estimateddeparture
 
     def getProgress(self):
@@ -137,29 +161,39 @@ class Train:
         return self.progress_ratio
     def getShapeID(self, tripID_to_shapeID):
         shape_id = "example"
+        trip_id_backup = self.trip_id[0: self.trip_id.index(".")]
+        shape_id_backup=""
         for key in tripID_to_shapeID:
             if (self.trip_id in key):
                 shape_id = tripID_to_shapeID[key].strip()
                 break
+            if(trip_id_backup in key):
+                shape_id_backup = tripID_to_shapeID[key].strip()
+        if(shape_id == "example"):
+            shape_id = shape_id_backup
         return shape_id
 
     def estimatedPosition(self):
+
         shape_id = self.getShapeID(self.tripID_to_shapeID)
         shapes = open("/Users/rohitsattuluri/PycharmProjects/wallpaper/gtfs_subway/shapes.txt", "r")
         shape_lines = shapes.readlines()
 
         route_path = []
-        location_prev = self.stopID_to_location[self.stop_list[self.findIndexPrevStop()]]
-        location_front = self.stopID_to_location[self.remaining_stops[0]]
+        try:
+            location_prev = self.stopID_to_location[self.past_station]
+            location_front = self.stopID_to_location[self.remaining_stops[0]]
 
+            for line in shape_lines:
+                l = line.split(",")
+                if (l[0] == shape_id):
+                    route_path.append(line)
 
-        for line in shape_lines:
-            l = line.split(",")
-            if (l[0] == shape_id):
-                route_path.append(line)
-
-        start_line = self.getNearestPoint(location_prev.split(",")[0], location_prev.split(",")[1], route_path)
-        end_line = self.getNearestPoint(location_front.split(",")[0], location_front.split(",")[1], route_path)
+            start_line = self.getNearestPoint(location_prev.split(",")[0], location_prev.split(",")[1], route_path)
+            end_line = self.getNearestPoint(location_front.split(",")[0], location_front.split(",")[1], route_path)
+        except:
+            self.validTrain = False
+            return [0,0]
 
         path_to_stop = []
         inbetween = False
@@ -201,10 +235,9 @@ class Train:
 
                 return [lat, lon]
 
-        try:
-            return [float(path_to_stop[-1].split(",")[0].strip()), float(path_to_stop[-1].split(",")[1].strip())]  #
-        except:
-            return [0,0]
+
+        return [float(path_to_stop[-1].split(",")[0].strip()), float(path_to_stop[-1].split(",")[1].strip())]  #
+
 
 
 
