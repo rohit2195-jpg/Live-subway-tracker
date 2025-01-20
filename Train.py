@@ -66,18 +66,23 @@ class Train:
 
         if(len(self.remaining_stop_times) > 1):
 
-
-            self.past_station = self.remaining_stops[0][0:3]
-            self.remaining_stops.pop(0)
-            self.departure_time = self.remaining_stop_times.pop(0)
-            self.arrival = self.remaining_stop_times[0]
+            if(self.remaining_stop_times[0]  == self.remaining_stop_times[1]):
+                self.past_station = self.remaining_stops[0][0:3]
+                self.remaining_stops.pop(0)
+                self.remaining_stop_times.pop(0)
+                self.arrival = self.remaining_stop_times[0]
+            else:
+                self.past_station = self.remaining_stops[0][0:3]
+                self.remaining_stops.pop(0)
+                self.departure_time = self.remaining_stop_times.pop(0)
+                self.arrival = self.remaining_stop_times[0]
 
             try:
                 total_time = self.arrival - self.departure_time
                 elapsed_time = current_time - self.departure_time
                 self.progress_ratio = elapsed_time / total_time
             except:
-                print("figure out why thisi is happning")
+                print("departure and arrivial are the same")
 
             '''
             print(self.trip_id, self.departure_time, self.arrival, sep="\t")
@@ -235,8 +240,10 @@ class Train:
 
                 return [lat, lon]
 
-
-        return [float(path_to_stop[-1].split(",")[0].strip()), float(path_to_stop[-1].split(",")[1].strip())]  #
+        if(len(path_to_stop) == 0):
+            self.validTrain = False
+            return [0,0]
+        return [float(path_to_stop[-1].split(",")[0].strip()), float(path_to_stop[-1].split(",")[1].strip())]
 
 
 

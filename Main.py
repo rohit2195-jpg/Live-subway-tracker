@@ -108,7 +108,8 @@ def getTrainList():
 
 
   feed = gtfs_realtime_pb2.FeedMessage()
-  response = requests.get('https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/nyct%2Fgtfs-ace')
+  ##change this link for different api
+  response = requests.get('https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/nyct%2Fgtfs-nqrw')
   feed.ParseFromString(response.content)
   #print(stopID_to_location)
 
@@ -132,6 +133,7 @@ def getTrainList():
       continue
 
 
+
     #print(remaining_stops)
 
 
@@ -144,12 +146,14 @@ def getTrainList():
 
 
     trip_id = entity.trip_update.trip.trip_id
+    '''
     print(remaining_stops)
     print(remaining_stop_times)
 
     print("arrival time: " + str(expected_time_to_next_station))
     print("delay time: " + str(delay))
     print("trip id" + trip_id)
+    '''
     #print(entity.trip_update)
 
 
@@ -160,6 +164,9 @@ def getTrainList():
 
     train1 = Train(trip_id, expected_time_to_next_station, remaining_stops, remaining_stop_times, delay, stop_list, vehicleID, stopID_to_location, tripID_to_shapeID)
     train_list.append(train1)
+    if (len(train_list) == 20):
+      break
+
 
 
 
@@ -205,12 +212,16 @@ def getTrainLocation():
     train_location.append(location)
 
 
+    '''
     print(location)
     print(train_list[index].trip_id)
     print(train_list[index].remaining_stop_times)
     print("departure timie: ", train_list[index].departure_time)
     print("current time: ", time.time())
     print("-"*30)
+    '''
+    print(index)
+
 
 
 
@@ -227,8 +238,5 @@ def getTrainLocation():
 if __name__ == '__main__':
     app.run(debug=True, port = 5001)
 
-getTrainList()
-while True:
-  getTrainLocation()
-  time.sleep(2)
+
 
