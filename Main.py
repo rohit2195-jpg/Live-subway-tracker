@@ -218,9 +218,10 @@ def getTrainLocation():
   file = open("Train Database/L_line_trains", "wb")
   pickle.dump(train_list, file)
 
+
   print(train_location)
 
-  #return jsonify(train_location)
+  return jsonify(train_location)
 
 
 if __name__ == '__main__':
@@ -229,5 +230,5 @@ if __name__ == '__main__':
 getTrainList()
 while True:
   getTrainLocation()
-
+  time.sleep(2)
 
