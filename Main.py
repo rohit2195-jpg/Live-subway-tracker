@@ -10,9 +10,15 @@ import folium
 import json
 from flask_cors import CORS
 import time
+import threading
 
 app = Flask(__name__)
 CORS(app)
+
+lock = threading.Lock()
+
+API_LINK = 'https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/nyct%2Fgtfs-ace'
+storage_path = API_LINK[API_LINK.rfind("gtfs"):] + ".txt"
 @app.route('/')
 def index():
   lines_to_colors = {
@@ -72,7 +78,7 @@ def index():
 
       folium.Marker(location=[l[2], l[3]], tooltip=l[1], icon=custom_icon).add_to(m)
 
-  link = "https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/nyct%2Fgtfs-l"
+
 
   output_path = 'nyc_subway_map.html'
   m.save(output_path)
@@ -82,18 +88,13 @@ def index():
 @app.route('/setupTrainList', methods=['GET'])
 def getTrainList():
   print("setup endpoint called")
-  stop_names = {}
-  stop_list = []
   stopID_to_location = {}
-  subwayID_to_location = {}
   stop_info = open("/Users/rohitsattuluri/PycharmProjects/wallpaper/gtfs_subway/stops.txt", 'r')
   lines = stop_info.readlines()
   for line in lines:
     l = line.split(",")
-    stop_names[l[0]] = l[1]
     stopID_to_location[l[0]] = l[2] + "," + l[3]
-    if(l[0][0] in ["A", "F", "G","H", "E", "D"] and "N" not in l[0] and "S" not in l[0]):
-      stop_list.append(l[0])
+
 
   tripID_to_shapeID = {}
   trip_info = open("/Users/rohitsattuluri/PycharmProjects/wallpaper/gtfs_subway/trips.txt", "r")
@@ -109,7 +110,8 @@ def getTrainList():
 
   feed = gtfs_realtime_pb2.FeedMessage()
   ##change this link for different api
-  response = requests.get('https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/nyct%2Fgtfs-nqrw')
+
+  response = requests.get(API_LINK)
   feed.ParseFromString(response.content)
   #print(stopID_to_location)
 
@@ -129,7 +131,7 @@ def getTrainList():
       remaining_stops.append(stop.stop_id)
       remaining_stop_times.append(stop.arrival.time)
 
-    if(len(remaining_stops) == 0 or len(remaining_stops) == len(stop_list)):
+    if(len(remaining_stops) == 0 ): ##or len(remaining_stops) == len(stop_list)
       continue
 
 
@@ -162,9 +164,9 @@ def getTrainList():
 
 
 
-    train1 = Train(trip_id, expected_time_to_next_station, remaining_stops, remaining_stop_times, delay, stop_list, vehicleID, stopID_to_location, tripID_to_shapeID)
+    train1 = Train(trip_id, expected_time_to_next_station, remaining_stops, remaining_stop_times, delay,  vehicleID, stopID_to_location, tripID_to_shapeID, storage_path)
     train_list.append(train1)
-    if (len(train_list) == 20):
+    if (len(train_list) == 5):
       break
 
 
@@ -172,7 +174,7 @@ def getTrainList():
 
   print(len(train_list))
 
-  file = open("Train Database/L_line_trains", "wb")
+  file = open("Train Database/"+storage_path, "wb")
   pickle.dump(train_list, file)
 
   return "setup_done", 200
@@ -185,31 +187,33 @@ def getTrainLocation():
   index = 0
   train_location = []
 
-  database = open("Train Database/L_line_trains", "rb")
+  database = open("Train Database/" + storage_path, "rb")
   train_list = pickle.load(database)
 
+
   while(index < len(train_list)):
+    with lock:
 
-    if(not train_list[index].update_progress()):
-      updateNeeded = True
-      print("API called again, train fnished all stops")
-      getTrainList()
-      database = open("Train Database/L_line_trains", "rb")
-      train_list = pickle.load(database)
-      index = 0
-      train_list[index].update_progress()
+      if(not train_list[index].update_progress()):
+        updateNeeded = True
+        print("API called again, train fnished all stops")
+        getTrainList()
+        database = open("Train Database/" + storage_path, "rb")
+        train_list = pickle.load(database)
+        index = 0
+        train_list[index].update_progress()
 
-    if(train_list[index].validTrain == False):
-      train_list.pop(index)
-      index -= 1
-      continue
-    location = train_list[index].estimatedPosition()
+      if(train_list[index].validTrain == False):
+        train_list.pop(index)
 
-    if (train_list[index].validTrain == False):
-      train_list.pop(index)
-      index -= 1
-      continue
-    train_location.append(location)
+        continue
+      location = train_list[index].estimatedPosition()
+
+      if (train_list[index].validTrain == False):
+        train_list.pop(index)
+
+        continue
+      train_location.append(location)
 
 
     '''
@@ -226,17 +230,19 @@ def getTrainLocation():
 
 
     index += 1
-  file = open("Train Database/L_line_trains", "wb")
+  file = open("Train Database/" + storage_path, "wb")
   pickle.dump(train_list, file)
 
 
   print(train_location)
 
-  return jsonify(train_location)
+  #return jsonify(train_location)
 
 
 if __name__ == '__main__':
     app.run(debug=True, port = 5001)
 
-
+getTrainList()
+while True:
+  getTrainLocation()
 

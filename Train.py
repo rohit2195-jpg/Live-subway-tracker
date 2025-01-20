@@ -8,20 +8,21 @@ from geopy.distance import geodesic
 
 
 class Train:
-    def __init__(self, trip_id, arrival,remaining_stops, remaining_stop_times, delay, stop_list, vehicleID, stopID_to_location, tripID_to_shapeID):
+    def __init__(self, trip_id, arrival,remaining_stops, remaining_stop_times, delay, vehicleID, stopID_to_location, tripID_to_shapeID, storage_path):
         self.trip_id = trip_id
 
         self.arrival = arrival
         self.remaining_stops = remaining_stops
         self.remaining_stop_times = remaining_stop_times
         self.delay = delay
-        self.stop_list = stop_list
+
         self.validTrain = True
         self.departure_time = 0
         self.vehicleID = vehicleID
         self.stopID_to_location = stopID_to_location
         self.tripID_to_shapeID = tripID_to_shapeID
         self.progress_ratio = 0
+        self.storage_apth = storage_path
 
     def update_progress(self):
         current_time = time.time()
@@ -72,6 +73,9 @@ class Train:
                 self.remaining_stop_times.pop(0)
                 self.arrival = self.remaining_stop_times[0]
             else:
+
+
+
                 self.past_station = self.remaining_stops[0][0:3]
                 self.remaining_stops.pop(0)
                 self.departure_time = self.remaining_stop_times.pop(0)
@@ -82,7 +86,7 @@ class Train:
                 elapsed_time = current_time - self.departure_time
                 self.progress_ratio = elapsed_time / total_time
             except:
-                print("departure and arrivial are the same")
+                print("figure out why thisi is happning")
 
             '''
             print(self.trip_id, self.departure_time, self.arrival, sep="\t")
@@ -95,34 +99,7 @@ class Train:
             return True
         return False
 
-    def stop_is_increasing(self, stops):
 
-        if (len(stops) == 1):
-            if (int(stops[0][1:3]) == int(self.stop_list[-1][1:3])):
-                return True
-            elif (int(stops[0][1:3]) == int(self.stop_list[0][1:3])):
-                return False
-
-        initial = int(stops[0][1:3])
-        for stop in stops:
-            if (int(stop[1:3]) > initial):
-                return True
-            elif (int(stop[1:3]) < initial):
-                return False
-
-    def findIndexPrevStop(self):
-        index_prev_stop = 0
-        for stop in self.stop_list:
-            if (stop == self.remaining_stops[0][0:3]):
-                direction = self.stop_is_increasing(self.remaining_stops)
-                if (direction):
-                    index_prev_stop -= 1
-                    break
-                else:
-                    index_prev_stop += 1
-                    break
-            index_prev_stop += 1
-        return index_prev_stop
 
     def findDepartureTime(self):
         estimateddeparture = 0
