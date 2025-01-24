@@ -1,7 +1,9 @@
 
 # NYC Subway Tracker 🚇
 
-This is a live NYC subway Tracker. Currently, only the some lines have live subway tracking, and other lines are currently being developed. 
+This is a live NYC subway Tracker. All lines have been added, but only select trains on each line are shown on the map. 
+Adding every train on each line is currently being developed. Additionally, the refresh/update times are a little slow, and that will be improved in the future as well.
+My goal is to eventually show every train on each line and update them every 10-15 seconds.
 
 
 ## Overview  
