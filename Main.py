@@ -11,79 +11,20 @@ import json
 from flask_cors import CORS
 import time
 import threading
+import concurrent.futures
 
 app = Flask(__name__)
 CORS(app)
 
 lock = threading.Lock()
 
-API_LINK = 'https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/nyct%2Fgtfs-ace'
-storage_path = API_LINK[API_LINK.rfind("gtfs"):] + ".txt"
-@app.route('/')
-def index():
-  lines_to_colors = {
-    "A": "blue",
-    "C": "blue",
-    "E": "blue",
-    "S": "grey",
-    "B": "orange",
-    "D": "orange",
-    "F": "orange",
-    "M": "orange",
-    "G": "lightgreen",
-    "L": "lightgrey",
-    "J": "orange",  # dark orage/gold
-    "N": "yellow",
-    "Q": "yellow",
-    "R": "yellow",
-    "W": "yellow",
-    "1": "red",
-    "2": "red",
-    "3": "red",
-    "4": "green",
-    "5": "green",
-    "6": "green",
-    "7": "purple",
-  }
+API_LINK = ['https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/nyct%2Fgtfs-ace', "https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/nyct%2Fgtfs-g",
+            "https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/nyct%2Fgtfs-jz", "https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/nyct%2Fgtfs-l",
+            "https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/nyct%2Fgtfs-bdfm", "https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/nyct%2Fgtfs-nqrw",
+            "https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/nyct%2Fgtfs"]
+storage_path = API_LINK[0][API_LINK[0].rfind("gtfs"):] + ".txt"
+#change this above for single use
 
-  geojson_path = 'Subway Lines.geojson'
-  with open(geojson_path, 'r') as f:
-    data = json.load(f)
-
-  m = folium.Map(location=[40.7, -73.95], zoom_start=12, tiles="cartodb positron")
-
-  for line in lines_to_colors:
-
-    g_line_features = [feature for feature in data['features'] if line in feature['properties']['name']]
-
-    g_line_features = sorted(g_line_features, key=lambda x: int(x['properties']['id']))
-
-    coordinate_list = []
-    for feature in g_line_features:
-      coordinates = feature['geometry']['coordinates']
-      new_coordinates = [[lat, lon] for lon, lat in coordinates]
-      coordinate_list.extend(new_coordinates)
-      folium.PolyLine(new_coordinates, color=lines_to_colors[line], weight=5, tooltip=line + " line", opacity=1).add_to(
-        m)
-
-  stop_data = open("gtfs_subway/stops.txt", "r")
-  stop_data_content = stop_data.readlines()
-  for i in range(1, len(stop_data_content)):
-    l = stop_data_content[i].split(",")
-    if (not "N" in l[0] and not "S" in l[0]):
-      custom_icon = folium.CustomIcon(
-        icon_image="noun-metro-station-79184.png",  # Path to the PNG file
-        icon_size=(12, 12)
-      )
-
-      folium.Marker(location=[l[2], l[3]], tooltip=l[1], icon=custom_icon).add_to(m)
-
-
-
-  output_path = 'nyc_subway_map.html'
-  m.save(output_path)
-
-  return render_template('index.html', map_path=output_path)
 
 @app.route('/setupTrainList', methods=['GET'])
 def getTrainList():
@@ -103,71 +44,70 @@ def getTrainList():
     l = line.split(",")
     tripID_to_shapeID[l[1]] = l[5]
 
-
-
-
-
-
-  feed = gtfs_realtime_pb2.FeedMessage()
-  ##change this link for different api
-
-  response = requests.get(API_LINK)
-  feed.ParseFromString(response.content)
-  #print(stopID_to_location)
-
-
-
   train_list = []
 
+  for link in API_LINK:
 
-  for entity in feed.entity:
+    feed = gtfs_realtime_pb2.FeedMessage()
+    ##change this link for different api
 
-    remaining_stops = []
-    remaining_stop_times = []
+    response = requests.get(link)
+    feed.ParseFromString(response.content)
+    # print(stopID_to_location)
+    length = 0
 
+    for entity in feed.entity:
 
-
-    for stop in entity.trip_update.stop_time_update:
-      remaining_stops.append(stop.stop_id)
-      remaining_stop_times.append(stop.arrival.time)
-
-    if(len(remaining_stops) == 0 ): ##or len(remaining_stops) == len(stop_list)
-      continue
-
-
-
-    #print(remaining_stops)
+      remaining_stops = []
+      remaining_stop_times = []
 
 
 
-    expected_time_to_next_station = remaining_stop_times[0]
+      for stop in entity.trip_update.stop_time_update:
+        remaining_stops.append(stop.stop_id)
+        remaining_stop_times.append(stop.arrival.time)
 
-    delay = entity.trip_update.stop_time_update[0].arrival.delay
-    vehicleID = entity.vehicle.congestion_level
-    #capacity =
-
-
-    trip_id = entity.trip_update.trip.trip_id
-    '''
-    print(remaining_stops)
-    print(remaining_stop_times)
-
-    print("arrival time: " + str(expected_time_to_next_station))
-    print("delay time: " + str(delay))
-    print("trip id" + trip_id)
-    '''
-    #print(entity.trip_update)
+      if(len(remaining_stops) == 0 ): ##or len(remaining_stops) == len(stop_list)
+        continue
+      if(length >= 25):
+        break
+      length += 1
 
 
 
 
 
+      #print(remaining_stops)
 
 
-    train1 = Train(trip_id, expected_time_to_next_station, remaining_stops, remaining_stop_times, delay,  vehicleID, stopID_to_location, tripID_to_shapeID, storage_path)
-    train_list.append(train1)
-    if (len(train_list) == 5):
-      break
+
+      expected_time_to_next_station = remaining_stop_times[0]
+
+      delay = entity.trip_update.stop_time_update[0].arrival.delay
+      vehicleID = entity.vehicle.congestion_level
+      #capacity =
+
+
+      trip_id = entity.trip_update.trip.trip_id
+      '''
+      print(remaining_stops)
+      print(remaining_stop_times)
+  
+      print("arrival time: " + str(expected_time_to_next_station))
+      print("delay time: " + str(delay))
+      print("trip id" + trip_id)
+      '''
+      #print(entity.trip_update)
+
+
+
+
+
+
+
+      train1 = Train(trip_id, expected_time_to_next_station, remaining_stops, remaining_stop_times, delay,  vehicleID, stopID_to_location, tripID_to_shapeID, storage_path)
+      train_list.append(train1)
+
 
 
 
@@ -183,60 +123,61 @@ def getTrainList():
 @app.route('/trainLocation', methods=['GET'])
 def getTrainLocation():
   print("location endpoint called")
-  updateNeeded = False
-  index = 0
   train_location = []
+  train_location_lock = threading.Lock()
 
-  database = open("Train Database/" + storage_path, "rb")
-  train_list = pickle.load(database)
-
-
-  while(index < len(train_list)):
-    with lock:
-
-      if(not train_list[index].update_progress()):
-        updateNeeded = True
-        print("API called again, train fnished all stops")
-        getTrainList()
-        database = open("Train Database/" + storage_path, "rb")
-        train_list = pickle.load(database)
-        index = 0
-        train_list[index].update_progress()
-
-      if(train_list[index].validTrain == False):
-        train_list.pop(index)
-
+  # Function for processing a chunk of trains
+  def process_train_chunk(train_chunk):
+    local_locations = []
+    index = 0
+    for train in train_chunk:
+      if not train.update_progress():
+        print("API called again, train finished all stops")
         continue
-      location = train_list[index].estimatedPosition()
 
-      if (train_list[index].validTrain == False):
-        train_list.pop(index)
-
+      if not train.validTrain:
         continue
-      train_location.append(location)
 
+      location = train.estimatedPosition()
 
-    '''
-    print(location)
-    print(train_list[index].trip_id)
-    print(train_list[index].remaining_stop_times)
-    print("departure timie: ", train_list[index].departure_time)
-    print("current time: ", time.time())
-    print("-"*30)
-    '''
-    print(index)
+      if train.validTrain:
+        local_locations.append(location)
+      print(index)
+      index += 1
 
+    with train_location_lock:
+      train_location.extend(local_locations)
 
+  # Load the train list
+  database_path = "Train Database/" + storage_path
+  with open(database_path, "rb") as database:
+    train_list = pickle.load(database)
 
+  # Split train_list into smaller chunks for threads
+  chunk_size = 10
+  chunks = [train_list[i:i + chunk_size] for i in range(0, len(train_list), chunk_size)]
 
-    index += 1
-  file = open("Train Database/" + storage_path, "wb")
-  pickle.dump(train_list, file)
+  # Create and start threads
+  threads = []
+  for chunk in chunks:
+    thread = threading.Thread(target=process_train_chunk, args=(chunk,))
+    threads.append(thread)
+    thread.start()
+
+  # Wait for all threads to finish
+  for thread in threads:
+    thread.join()
+
+  # Update the train database after all threads complete
+  with open(database_path, "wb") as database:
+    pickle.dump(train_list, database)
+
+  print("Train locations updated and database saved.")
 
 
   print(train_location)
 
-  #return jsonify(train_location)
+  return jsonify(train_location)
 
 
 if __name__ == '__main__':

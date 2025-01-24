@@ -1,7 +1,7 @@
 
 # NYC Subway Tracker 🚇
 
-This is a live NYC subway Tracker. Currently, only the L line has live subway tracking, and other lines are currently being developed. 
+This is a live NYC subway Tracker. Currently, only the some lines have live subway tracking, and other lines are currently being developed. 
 
 
 ## Overview  

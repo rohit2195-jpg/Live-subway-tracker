@@ -32,11 +32,13 @@ class Train:
             return True
         adjusted_departure = self.departure_time
         adjusted_arrival = self.arrival
+        try:
+            total_time = adjusted_arrival - adjusted_departure
 
-        total_time = adjusted_arrival - adjusted_departure
-
-        elapsed_time = current_time - adjusted_departure
-        self.progress_ratio = elapsed_time / total_time
+            elapsed_time = current_time - adjusted_departure
+            self.progress_ratio = elapsed_time / total_time
+        except:
+            self.validTrain = False
 
 
 
