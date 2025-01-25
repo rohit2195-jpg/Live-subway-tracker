@@ -69,7 +69,7 @@ def getTrainList():
 
       if(len(remaining_stops) == 0 ): ##or len(remaining_stops) == len(stop_list)
         continue
-      if(length >= 25):
+      if(length >= 5):
         break
       length += 1
 
