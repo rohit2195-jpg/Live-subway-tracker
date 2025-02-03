@@ -22,7 +22,7 @@ class Train:
         self.stopID_to_location = stopID_to_location
         self.tripID_to_shapeID = tripID_to_shapeID
         self.progress_ratio = 0
-        self.storage_apth = storage_path
+        self.storage_path = storage_path
 
     def update_progress(self):
         current_time = time.time()

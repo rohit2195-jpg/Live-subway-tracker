@@ -69,7 +69,7 @@ def getTrainList():
 
       if(len(remaining_stops) == 0 ): ##or len(remaining_stops) == len(stop_list)
         continue
-      if(length >= 5):
+      if(length >= 10):
         break
       length += 1
 
@@ -154,7 +154,7 @@ def getTrainLocation():
     train_list = pickle.load(database)
 
   # Split train_list into smaller chunks for threads
-  chunk_size = 10
+  chunk_size =25
   chunks = [train_list[i:i + chunk_size] for i in range(0, len(train_list), chunk_size)]
 
   # Create and start threads
