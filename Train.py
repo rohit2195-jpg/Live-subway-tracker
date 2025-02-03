@@ -8,7 +8,8 @@ from geopy.distance import geodesic
 
 
 class Train:
-    def __init__(self, trip_id, arrival,remaining_stops, remaining_stop_times, delay, vehicleID, stopID_to_location, tripID_to_shapeID, storage_path):
+    def __init__(self, trip_id, arrival,remaining_stops, remaining_stop_times, delay, vehicleID,
+                 stopID_to_location, tripID_to_shapeID, storage_path, trip_id_to_departure_time, shape_id_to_coordinate):
         self.trip_id = trip_id
 
         self.arrival = arrival
@@ -23,6 +24,8 @@ class Train:
         self.tripID_to_shapeID = tripID_to_shapeID
         self.progress_ratio = 0
         self.storage_path = storage_path
+        self.trip_id_to_departure_time = trip_id_to_departure_time
+        self.shape_id_to_coordinate = shape_id_to_coordinate
 
     def update_progress(self):
         current_time = time.time()
@@ -107,34 +110,37 @@ class Train:
         estimateddeparture = 0
         backup_departure = 0
         backup_tripID = self.trip_id[0:self.trip_id.index(".")]
-        stop_times = open("/Users/rohitsattuluri/PycharmProjects/wallpaper/gtfs_subway/stop_times.txt", "r")
-        contents = stop_times.readlines()
-        for i in range(1, len(contents)):
-            line = contents[i].split(",")
-            prev_line = contents[i-1].split(",")
-            ##get departure time in different way, not with stop_list but with stopsequence on stop_times.txt
 
 
-            if (self.trip_id in line[0] and line[1] == (self.remaining_stops[0])):
-                estimateddeparture = prev_line[3]
-                self.past_station = prev_line[1]
-                break
-            if(backup_tripID in line[0] and line[1] == (self.remaining_stops[0])):
-                backup_departure = prev_line[3]
-                self.past_station = prev_line[1]
+
+        '''
+        if (self.trip_id in line[0] and line[1] == (self.remaining_stops[0])):
+            estimateddeparture = prev_line[3]
+            self.past_station = prev_line[1]
+            break
+        '''
 
 
-        if(estimateddeparture == 0):
-            estimateddeparture = backup_departure
-        if(estimateddeparture == 0 and backup_departure == 0):
-            self.validTrain = False
+
+
+
 
         try:
+            index = self.trip_id_to_departure_time[self.trip_id]["stations"].index(self.remaining_stops[0]) - 1
+            self.past_station = self.trip_id_to_departure_time[self.trip_id]["stations"][index]
+            estimateddeparture = self.trip_id_to_departure_time[self.trip_id]["departures"][index]
+
+            if (estimateddeparture == 0 and backup_departure == 0):
+                self.validTrain = False
+
+
+
+
             date_str = date.today()
 
             estimateddeparture = datetime.strptime(f"{date_str} {estimateddeparture}", "%Y-%m-%d %H:%M:%S")
             estimateddeparture = int(estimateddeparture.timestamp())
-        except ValueError:
+        except:
             estimateddeparture = 0
 
 
@@ -144,35 +150,26 @@ class Train:
 
         return self.progress_ratio
     def getShapeID(self, tripID_to_shapeID):
-        shape_id = "example"
-        trip_id_backup = self.trip_id[0: self.trip_id.index(".")]
-        shape_id_backup=""
-        for key in tripID_to_shapeID:
-            if (self.trip_id in key):
-                shape_id = tripID_to_shapeID[key].strip()
-                break
-            if(trip_id_backup in key):
-                shape_id_backup = tripID_to_shapeID[key].strip()
-        if(shape_id == "example"):
-            shape_id = shape_id_backup
+        try:
+            shape_id = tripID_to_shapeID[self.trip_id].strip()
+        except:
+            self.validTrain = False
+            shape_id = ""
         return shape_id
 
     def estimatedPosition(self):
 
         shape_id = self.getShapeID(self.tripID_to_shapeID)
-        shapes = open("/Users/rohitsattuluri/PycharmProjects/wallpaper/gtfs_subway/shapes.txt", "r")
-        shape_lines = shapes.readlines()
+
+
 
         route_path = []
         try:
+
+            route_path = self.shape_id_to_coordinate[shape_id]
+
             location_prev = self.stopID_to_location[self.past_station]
             location_front = self.stopID_to_location[self.remaining_stops[0]]
-
-            for line in shape_lines:
-                l = line.split(",")
-                if (l[0] == shape_id):
-                    route_path.append(line)
-
             start_line = self.getNearestPoint(location_prev.split(",")[0], location_prev.split(",")[1], route_path)
             end_line = self.getNearestPoint(location_front.split(",")[0], location_front.split(",")[1], route_path)
         except:

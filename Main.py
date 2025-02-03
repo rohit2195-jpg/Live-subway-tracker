@@ -42,7 +42,34 @@ def getTrainList():
   tripinfo_lines = trip_info.readlines()
   for line in tripinfo_lines:
     l = line.split(",")
-    tripID_to_shapeID[l[1]] = l[5]
+    tripID_to_shapeID[l[1][l[1].index('_') + 1:]] = l[5]
+
+  trip_id_to_departure_time = {}
+  stop_times = open("/Users/rohitsattuluri/PycharmProjects/wallpaper/gtfs_subway/stop_times.txt", "r")
+  contents = stop_times.readlines()
+  for i in range(1, len(contents)):
+    line = contents[i].split(",")
+    prev_line = contents[i - 1].split(",")
+    ##get departure time in different way, not with stop_list but with stopsequence on stop_times.txt
+    if (line[0][line[0].index('_') + 1:]) not in trip_id_to_departure_time:
+      trip_id_to_departure_time[line[0][line[0].index('_') + 1:]] = {
+        "stations": [],
+        "departures": [],
+      }
+    trip_id_to_departure_time[line[0][line[0].index('_') + 1:]]["stations"].append(line[1])
+    trip_id_to_departure_time[line[0][line[0].index('_') + 1:]]["departures"].append(line[3])
+
+  shapes = open("/Users/rohitsattuluri/PycharmProjects/wallpaper/gtfs_subway/shapes.txt", "r")
+  shape_lines = shapes.readlines()
+  shape_id_to_coordinate = {}
+
+  for line in shape_lines:
+    l = line.split(",")
+
+    if (l[0] not in shape_id_to_coordinate):
+      shape_id_to_coordinate[l[0]] = []
+    shape_id_to_coordinate[l[0]].append(line)
+
 
   train_list = []
 
@@ -105,7 +132,7 @@ def getTrainList():
 
 
 
-      train1 = Train(trip_id, expected_time_to_next_station, remaining_stops, remaining_stop_times, delay,  vehicleID, stopID_to_location, tripID_to_shapeID, storage_path)
+      train1 = Train(trip_id, expected_time_to_next_station, remaining_stops, remaining_stop_times, delay,  vehicleID, stopID_to_location, tripID_to_shapeID, storage_path, trip_id_to_departure_time, shape_id_to_coordinate)
       train_list.append(train1)
 
 
@@ -177,7 +204,7 @@ def getTrainLocation():
 
   print(train_location)
 
-  return jsonify(train_location)
+  #return jsonify(train_location)
 
 
 if __name__ == '__main__':
