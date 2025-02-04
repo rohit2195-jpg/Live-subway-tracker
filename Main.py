@@ -204,7 +204,7 @@ def getTrainLocation():
 
   print(train_location)
 
-  #return jsonify(train_location)
+  return jsonify(train_location)
 
 
 if __name__ == '__main__':
