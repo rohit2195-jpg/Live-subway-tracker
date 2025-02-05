@@ -173,7 +173,7 @@
             const trainLocations = await getTrainLocations();
             console.log("Updating train markers...");
             updateTrainLocations(trainLocations);
-        }, 30000); //wait for 5 seconds
+        }, 3000); //wait for 5 seconds
     } catch (error) {
         console.error("Error initializing system:", error);
     }

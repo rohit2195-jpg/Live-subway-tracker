@@ -1,7 +1,11 @@
+import math
 import time
 from datetime import datetime, timedelta
 from datetime import date
 from warnings import catch_warnings
+from decimal import Decimal
+from math import *
+
 
 from geopy.distance import geodesic
 
@@ -194,8 +198,9 @@ class Train:
         for i in range(1, len(path_to_stop)):
             point1 = (path_to_stop[i-1].split(",")[0], path_to_stop[i-1].split(",")[1])
             point2 = (path_to_stop[i].split(",")[0], path_to_stop[i].split(",")[1])
-
-            distance = geodesic(point1, point2).meters
+            lat1, lon1 = map(float, point1)
+            lat2, lon2 = map(float, point2)
+            distance = self.haversine(lat1, lon1, lat2, lon2)
             total_distance += distance
             cumulative_distance.append(total_distance)
 
@@ -225,18 +230,35 @@ class Train:
 
 
     def getNearestPoint(self, lat, long, route_path):
-        min_distance = float('inf')
+        min_distance = 100
         nearest_point_line = None
         for point in route_path:
             line = point.split(",")
-            point_coords = (line[2], line[3])
+            point_coords = (line[2], line[3].strip())
             stop_coords = (lat, long)
-            distance = geodesic(stop_coords, point_coords).meters  # Calculate distance in meters
+            lat1, lon1 = map(float, point_coords)
+            lat2, lon2 = map(float, stop_coords)
+            distance = self.haversine(lat1, lon1, lat2, lon2)
             if distance < min_distance:
                 min_distance = distance
                 nearest_point_line = point
         return nearest_point_line
 
+    def haversine(self, lon1, lat1, lon2, lat2):
+        """
+        Calculate the great circle distance in kilometers between two points
+        on the earth (specified in decimal degrees)
+        """
+        # convert decimal degrees to radians
+        lon1, lat1, lon2, lat2 = map(radians, [lon1, lat1, lon2, lat2])
+
+        # haversine formula
+        dlon = lon2 - lon1
+        dlat = lat2 - lat1
+        a = sin(dlat / 2) ** 2 + cos(lat1) * cos(lat2) * sin(dlon / 2) ** 2
+        c = 2 * asin(sqrt(a))
+        r = 6371  # Radius of earth in kilometers. Use 3956 for miles. Determines return value units.
+        return c * r
 
 
 
