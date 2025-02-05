@@ -154,51 +154,32 @@ def getTrainList():
 
 @app.route('/trainLocation', methods=['GET'])
 def getTrainLocation():
-  print("location endpoint called")
-  train_location = []
-  train_location_lock = threading.Lock()
-
-  # Function for processing a chunk of trains
-  def process_train_chunk(train_chunk):
-    local_locations = []
-    index = 0
-    for train in train_chunk:
-      if not train.update_progress():
-        print("API called again, train finished all stops")
-        continue
-
-      if not train.validTrain:
-        continue
-
-      location = train.estimatedPosition()
-
-      if train.validTrain:
-        local_locations.append(location)
-      print(index)
-      index += 1
-
-    with train_location_lock:
-      train_location.extend(local_locations)
-
   # Load the train list
   database_path = "Train Database/" + storage_path
   with open(database_path, "rb") as database:
     train_list = pickle.load(database)
 
-  # Split train_list into smaller chunks for threads
-  chunk_size =25
-  chunks = [train_list[i:i + chunk_size] for i in range(0, len(train_list), chunk_size)]
+  local_locations = []
+  index = 0
+  for train in train_list:
+    if not train.update_progress():
+      print("API called again, train finished all stops")
+      continue
 
-  # Create and start threads
-  threads = []
-  for chunk in chunks:
-    thread = threading.Thread(target=process_train_chunk, args=(chunk,))
-    threads.append(thread)
-    thread.start()
+    if not train.validTrain:
+      continue
 
-  # Wait for all threads to finish
-  for thread in threads:
-    thread.join()
+    location = train.estimatedPosition()
+
+    if train.validTrain:
+      local_locations.append(location)
+    print(index)
+    index += 1
+
+
+
+
+
 
   # Update the train database after all threads complete
   with open(database_path, "wb") as database:
@@ -207,9 +188,10 @@ def getTrainLocation():
   print("Train locations updated and database saved.")
 
 
-  print(train_location)
+  print(local_locations)
+  print(len(local_locations))
 
-  return jsonify(train_location)
+  return jsonify(local_locations)
 
 
 if __name__ == '__main__':

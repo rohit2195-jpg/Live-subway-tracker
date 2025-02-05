@@ -117,6 +117,8 @@ class Train:
 
 
 
+
+
         '''
         if (self.trip_id in line[0] and line[1] == (self.remaining_stops[0])):
             estimateddeparture = prev_line[3]
@@ -130,9 +132,18 @@ class Train:
 
 
         try:
-            index = self.trip_id_to_departure_time[self.trip_id]["stations"].index(self.remaining_stops[0]) - 1
-            self.past_station = self.trip_id_to_departure_time[self.trip_id]["stations"][index]
-            estimateddeparture = self.trip_id_to_departure_time[self.trip_id]["departures"][index]
+
+            try:
+                index = self.trip_id_to_departure_time[self.trip_id]["stations"].index(self.remaining_stops[0]) - 1
+                self.past_station = self.trip_id_to_departure_time[self.trip_id]["stations"][index]
+                estimateddeparture = self.trip_id_to_departure_time[self.trip_id]["departures"][index]
+            except:
+
+                for key in self.trip_id_to_departure_time.keys():
+                    if backup_tripID in key:
+                        index = self.trip_id_to_departure_time[key]["stations"].index(self.remaining_stops[0]) - 1
+                        self.past_station = self.trip_id_to_departure_time[key]["stations"][index]
+                        estimateddeparture = self.trip_id_to_departure_time[key]["departures"][index]
 
             if (estimateddeparture == 0 and backup_departure == 0):
                 self.validTrain = False
@@ -148,17 +159,29 @@ class Train:
             estimateddeparture = 0
 
 
+
         return estimateddeparture
 
     def getProgress(self):
 
         return self.progress_ratio
     def getShapeID(self, tripID_to_shapeID):
+        shape_id = ""
+        backup_tripID = self.trip_id[0:self.trip_id.index(".")]
         try:
-            shape_id = tripID_to_shapeID[self.trip_id].strip()
+            try:
+                shape_id = tripID_to_shapeID[self.trip_id].strip()
+
+            except:
+                for key in tripID_to_shapeID.keys():
+                    if (backup_tripID in key):
+                        shape_id = tripID_to_shapeID[key].strip()
+            if (shape_id == ""):
+                print("erorr here")
+                self.validTrain = False
         except:
             self.validTrain = False
-            shape_id = ""
+
         return shape_id
 
     def estimatedPosition(self):
