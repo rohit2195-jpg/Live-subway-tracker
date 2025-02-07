@@ -144,7 +144,7 @@ def getTrainList():
 
 
 
-  print(len(train_list))
+  print("recieved this many trains from api: ", len(train_list))
 
   file = open("Train Database/"+storage_path, "wb")
   pickle.dump(train_list, file)
@@ -173,7 +173,8 @@ def getTrainLocation():
 
     if train.validTrain:
       local_locations.append(location)
-    print(index)
+    if (index % 100 == 0):
+      print(index)
     index += 1
 
 
@@ -188,8 +189,9 @@ def getTrainLocation():
   print("Train locations updated and database saved.")
 
 
-  print(local_locations)
-  print(len(local_locations))
+  print("locations: ", local_locations)
+  print("number of valid trains in API: ", len(local_locations))
+  print("data yield: ", len(local_locations)/len(train_list) * 100, "%")
 
   return jsonify(local_locations)
 

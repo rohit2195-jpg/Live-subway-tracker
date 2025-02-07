@@ -177,7 +177,7 @@ class Train:
                     if (backup_tripID in key):
                         shape_id = tripID_to_shapeID[key].strip()
             if (shape_id == ""):
-                print("erorr here")
+                print("missing shapeid data in datasets")
                 self.validTrain = False
         except:
             self.validTrain = False
