@@ -167,13 +167,23 @@
         console.log("Updating train markers...");
         updateTrainLocations(trainLocation);
 
-         //Start periodic updates
-        setInterval(async () => {
-            console.log("Fetching train locations...");
-            const trainLocations = await getTrainLocations();
-            console.log("Updating train markers...");
-            updateTrainLocations(trainLocations);
-        }, 3000); //wait for 5 seconds
+         let updateCount = 0;
+
+      setInterval(async () => {
+          console.log("Fetching train locations...");
+          const trainLocations = await getTrainLocations();
+          console.log("Updating train markers...");
+          updateTrainLocations(trainLocations);
+
+          updateCount++;
+
+          // Every 6th time (i.e., every 30 seconds), call setupTrainList
+          if (updateCount >= 12) {
+              console.log("Setting up train list...");
+              setupTrainList();
+              updateCount = 0; // Reset counter
+          }
+      }, 5000);
     } catch (error) {
         console.error("Error initializing system:", error);
     }
