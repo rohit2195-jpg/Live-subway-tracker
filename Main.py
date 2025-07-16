@@ -12,6 +12,7 @@ from flask_cors import CORS
 import time
 import threading
 import concurrent.futures
+import os
 
 app = Flask(__name__)
 CORS(app)
@@ -36,7 +37,7 @@ storage_path = API_LINK[0][API_LINK[0].rfind("gtfs"):] + ".txt"
 def getTrainList():
   print("setup endpoint called")
   stopID_to_location = {}
-  stop_info = open("/Users/rohitsattuluri/PycharmProjects/wallpaper/gtfs_subway/stops.txt", 'r')
+  stop_info = open(os.path.join(".", "gtfs_subway", "stops.txt"), 'r')
   lines = stop_info.readlines()
   for line in lines:
     l = line.split(",")
@@ -44,14 +45,15 @@ def getTrainList():
 
 
   tripID_to_shapeID = {}
-  trip_info = open("/Users/rohitsattuluri/PycharmProjects/wallpaper/gtfs_subway/trips.txt", "r")
+
+  trip_info = open(os.path.join(".", "gtfs_subway", "trips.txt"), "r")
   tripinfo_lines = trip_info.readlines()
   for line in tripinfo_lines:
     l = line.split(",")
     tripID_to_shapeID[l[1][l[1].index('_') + 1:]] = l[5]
 
   trip_id_to_departure_time = {}
-  stop_times = open("/Users/rohitsattuluri/PycharmProjects/wallpaper/gtfs_subway/stop_times.txt", "r")
+  stop_times = open(os.path.join(".", "gtfs_subway", "stop_times.txt"), "r")
   contents = stop_times.readlines()
   for i in range(1, len(contents)):
     line = contents[i].split(",")
@@ -65,7 +67,7 @@ def getTrainList():
     trip_id_to_departure_time[line[0][line[0].index('_') + 1:]]["stations"].append(line[1])
     trip_id_to_departure_time[line[0][line[0].index('_') + 1:]]["departures"].append(line[3])
 
-  shapes = open("/Users/rohitsattuluri/PycharmProjects/wallpaper/gtfs_subway/shapes.txt", "r")
+  shapes = open(os.path.join(".", "gtfs_subway", "shapes.txt"), "r")
   shape_lines = shapes.readlines()
   shape_id_to_coordinate = {}
 
@@ -146,7 +148,7 @@ def getTrainList():
 
   print("recieved this many trains from api: ", len(train_list))
 
-  file = open("Train Database/"+storage_path, "wb")
+  file = open(os.path.join(".", "Train Database", storage_path), "wb")
   pickle.dump(train_list, file)
 
   return "setup_done", 200
@@ -155,7 +157,8 @@ def getTrainList():
 @app.route('/trainLocation', methods=['GET'])
 def getTrainLocation():
   # Load the train list
-  database_path = "Train Database/" + storage_path
+
+  database_path = os.path.join(".", "Train Database", storage_path)
   with open(database_path, "rb") as database:
     train_list = pickle.load(database)
 
@@ -163,7 +166,7 @@ def getTrainLocation():
   index = 0
   for train in train_list:
     if not train.update_progress():
-      print("API called again, train finished all stops")
+      print("Train finished all stops")
       continue
 
     if not train.validTrain:
