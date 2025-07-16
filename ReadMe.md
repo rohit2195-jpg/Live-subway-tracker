@@ -47,5 +47,8 @@ Relying solely on the API proved insufficient for tracking all trains, as the av
 - [Github Repo for acessing data in Python2] (https://github.com/Andrew-Dickinson/nyct-gtfs)
 - [NYC Subway Route Data] (https://data.cityofnewyork.us/Transportation/Subway-Lines/3qz8-muuu)
 
+## License
+
+This project is licensed under the [MIT License](LICENSE).
 
 
