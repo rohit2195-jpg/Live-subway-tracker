@@ -7,7 +7,19 @@ This project receives stop data and expected arrival times from the **Metropolit
 
 ## Testing instructions
 1. To run this map on your device, first clone or download this repository.
-2. Start the backend by running python Main.py
+```angular2html
+git clone https://github.com/rohit2195-jpg/Live-subway-tracker
+cd Live-subway-tracker
+```
+2. Start the backend by installing dependecies
+```angular2html
+python3 -m venv .venv
+source .venv/bin/activate
+.venv/bin/pip install -r requirements.txt
+```
+```angular2html
+.venv/bin/python backend.py
+```
 3. Start the frontend by clicking index.html
 
 ## Features  
