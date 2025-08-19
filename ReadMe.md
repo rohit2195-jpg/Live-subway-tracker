@@ -20,7 +20,10 @@ source .venv/bin/activate
 ```angular2html
 .venv/bin/python backend.py
 ```
-3. Start the frontend by clicking index.html
+3. Start the frontend 
+First create the frontend server
+```.venv/bin/python -m http.server 8000 ```
+Then visit http://localhost:8000/index.html
 
 ## Features  
 1. Initializes a NYC map and overlays subway routes using `Subway Lines.geojson`, a resource from NYC Open Data.  

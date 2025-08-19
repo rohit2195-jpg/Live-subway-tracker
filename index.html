@@ -49,6 +49,7 @@
           const lineFeatures = data.features.filter(feature =>
             feature.properties.name.includes(line)
           );
+          console.log("doing this correct")
 
           // Sort features by ID
           lineFeatures.sort((a, b) => parseInt(a.properties.id) - parseInt(b.properties.id));
